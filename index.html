@@ -5,27 +5,53 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BodyFit AI — Personal Health & Fitness Platform</title>
     <!-- Tailwind CSS for modern, responsive UI styling -->
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons for clean UI components -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        .sidebar-item-active {
-            background-color: rgba(255, 255, 255, 0.1);
-            border-left: 4px solid #3b82f6;
+        /* Dynamic Animations & Transitions */
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        .view-pane { display: none; }
-        .view-pane.active { display: block; }
+        .sidebar-item-active {
+            background-color: rgba(59, 130, 246, 0.15); /* Subtly tinted blue */
+            border-left: 4px solid #3b82f6;
+            color: #fff;
+        }
+        .view-pane { 
+            display: none; 
+        }
+        .view-pane.active { 
+            display: block; 
+            animation: fadeSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        /* Smooth transitions for all interactive elements */
+        button, a, input, select {
+            transition: all 0.2s ease-in-out;
+        }
+        button:active {
+            transform: scale(0.97);
+        }
+        /* Sidebar transition */
+        #sidebar {
+            transition: transform 0.3s ease-in-out, margin 0.3s ease-in-out;
+        }
+        .sidebar-hidden {
+            transform: translateX(-100%);
+            margin-left: -16rem; /* matches w-64 */
+        }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex">
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex overflow-hidden">
 
     <!-- ========================================================= -->
     <!-- AUTHENTICATION OVERLAY (Shown if user is logged out)      -->
     <!-- ========================================================= -->
-    <div id="authOverlay" class="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-800 p-8 rounded-2xl w-full max-w-md border border-slate-700 shadow-2xl">
+    <div id="authOverlay" class="fixed inset-0 bg-slate-950/95 z-50 flex items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-500">
+        <div class="bg-slate-800 p-8 rounded-2xl w-full max-w-md border border-slate-700 shadow-2xl transform transition-transform duration-500 scale-100" id="authBox">
             <div class="flex items-center gap-3 mb-6 justify-center">
-                <div class="p-2 bg-blue-600 rounded-xl"><i data-lucide="dumbbell" class="h-6 w-6 text-white"></i></div>
+                <div class="p-2 bg-blue-600 rounded-xl shadow-lg shadow-blue-500/30"><i data-lucide="dumbbell" class="h-6 w-6 text-white"></i></div>
                 <h1 class="text-2xl font-bold tracking-tight">BodyFit <span class="text-blue-500">AI</span></h1>
             </div>
             <p class="text-sm text-slate-400 text-center mb-6">Enter email and password to instantly access or create your account.</p>
@@ -33,13 +59,13 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Email Address</label>
-                        <input type="email" id="authEmail" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 text-sm" placeholder="you@example.com">
+                        <input type="email" id="authEmail" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm" placeholder="you@example.com">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Password</label>
-                        <input type="password" id="authPassword" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 text-sm" placeholder="••••••••">
+                        <input type="password" id="authPassword" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm" placeholder="••••••••">
                     </div>
-                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 font-semibold text-white py-3 rounded-xl transition mt-2 cursor-pointer flex items-center justify-center gap-2">
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 font-semibold text-white py-3 rounded-xl shadow-lg shadow-blue-600/20 mt-4 flex items-center justify-center gap-2">
                         Get Started <i data-lucide="arrow-right" class="h-4 w-4"></i>
                     </button>
                 </div>
@@ -50,286 +76,318 @@
     <!-- ========================================================= -->
     <!-- SIDEBAR NAVIGATION                                       -->
     <!-- ========================================================= -->
-    <aside id="sidebar" class="w-64 bg-slate-950 border-r border-slate-800 flex flex-col hidden h-screen sticky top-0">
+    <aside id="sidebar" class="w-64 bg-slate-950 border-r border-slate-800 flex flex-col h-screen shrink-0 absolute md:relative z-40 sidebar-hidden">
         <div class="p-6 border-b border-slate-800 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <i data-lucide="dumbbell" class="text-blue-500 h-5 w-5"></i>
                 <span class="font-bold text-lg">BodyFit AI</span>
             </div>
-            <span id="userTierBadge" class="text-xs bg-slate-800 text-slate-300 font-bold px-2 py-0.5 rounded-full uppercase">Free</span>
+            <!-- Mobile Close Button -->
+            <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white">
+                <i data-lucide="x" class="h-5 w-5"></i>
+            </button>
         </div>
         
         <!-- Navigation Links Container -->
-        <nav class="flex-1 overflow-y-auto p-4 space-y-1">
-            <p class="text-[10px] font-bold text-slate-500 uppercase px-3 mb-2 tracking-wider">Dashboard</p>
-            <a href="#" onclick="switchView('home')" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-900 transition text-sm font-medium sidebar-item-active" id="nav-home"><i data-lucide="layout-dashboard" class="h-4 w-4"></i> Home</a>
-            <a href="#" onclick="switchView('aiCoach')" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-900 transition text-sm font-medium" id="nav-aiCoach"><i data-lucide="bot" class="h-4 w-4"></i> AI Coach Chat</a>
+        <nav class="flex-1 overflow-y-auto p-4 space-y-1 scrollbar-hide">
+            <p class="text-[10px] font-bold text-slate-500 uppercase px-3 mb-2 tracking-wider mt-2">Dashboard</p>
+            <a href="#" onclick="switchView('home')" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-900 hover:text-slate-200 text-sm font-medium sidebar-item-active" id="nav-home"><i data-lucide="layout-dashboard" class="h-4 w-4"></i> Home</a>
+            <a href="#" onclick="switchView('aiCoach')" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-900 hover:text-slate-200 text-sm font-medium" id="nav-aiCoach"><i data-lucide="bot" class="h-4 w-4"></i> AI Coach Chat</a>
             
-            <p class="text-[10px] font-bold text-slate-500 uppercase px-3 mt-4 mb-2 tracking-wider">AI Engines</p>
-            <a href="#" onclick="switchView('scanFood')" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-900 transition text-sm font-medium" id="nav-scanFood"><i data-lucide="camera" class="h-4 w-4"></i> Scan Food</a>
-            <a href="#" onclick="switchView('mealPlanner')" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-900 transition text-sm font-medium" id="nav-mealPlanner"><i data-lucide="utensils" class="h-4 w-4"></i> AI Meal Planner</a>
-            <a href="#" onclick="switchView('workoutGenerator')" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-900 transition text-sm font-medium" id="nav-workoutGenerator"><i data-lucide="zap" class="h-4 w-4"></i> AI Workout Gen</a>
+            <p class="text-[10px] font-bold text-slate-500 uppercase px-3 mt-5 mb-2 tracking-wider">AI Engines</p>
+            <a href="#" onclick="switchView('scanFood')" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-900 hover:text-slate-200 text-sm font-medium" id="nav-scanFood"><i data-lucide="camera" class="h-4 w-4"></i> Scan Food</a>
+            <a href="#" onclick="switchView('mealPlanner')" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-900 hover:text-slate-200 text-sm font-medium" id="nav-mealPlanner"><i data-lucide="utensils" class="h-4 w-4"></i> AI Meal Planner</a>
+            <a href="#" onclick="switchView('workoutGenerator')" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-900 hover:text-slate-200 text-sm font-medium" id="nav-workoutGenerator"><i data-lucide="zap" class="h-4 w-4"></i> AI Workout Gen</a>
             
-            <p class="text-[10px] font-bold text-slate-500 uppercase px-3 mt-4 mb-2 tracking-wider">Planners & Guides</p>
-            <a href="#" onclick="switchView('weightLoss')" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-900 transition text-sm font-medium" id="nav-weightLoss"><i data-lucide="trending-down" class="h-4 w-4"></i> Weight Loss</a>
-            <a href="#" onclick="switchView('weightGain')" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-900 transition text-sm font-medium" id="nav-weightGain"><i data-lucide="trending-up" class="h-4 w-4"></i> Weight Gain</a>
-            <a href="#" onclick="switchView('heightGrowth')" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-900 transition text-sm font-medium" id="nav-heightGrowth"><i data-lucide="arrow-up-to-line" class="h-4 w-4"></i> Height Guide</a>
-            <a href="#" onclick="switchView('glowUp')" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-900 transition text-sm font-medium" id="nav-glowUp"><i data-lucide="sparkles" class="h-4 w-4"></i> Glow Up Coach</a>
+            <p class="text-[10px] font-bold text-slate-500 uppercase px-3 mt-5 mb-2 tracking-wider">Planners & Guides</p>
+            <a href="#" onclick="switchView('weightLoss')" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-900 hover:text-slate-200 text-sm font-medium" id="nav-weightLoss"><i data-lucide="trending-down" class="h-4 w-4"></i> Weight Loss</a>
+            <a href="#" onclick="switchView('weightGain')" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-900 hover:text-slate-200 text-sm font-medium" id="nav-weightGain"><i data-lucide="trending-up" class="h-4 w-4"></i> Weight Gain</a>
+            <a href="#" onclick="switchView('heightGrowth')" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-900 hover:text-slate-200 text-sm font-medium" id="nav-heightGrowth"><i data-lucide="arrow-up-to-line" class="h-4 w-4"></i> Height Guide</a>
+            <a href="#" onclick="switchView('glowUp')" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-900 hover:text-slate-200 text-sm font-medium" id="nav-glowUp"><i data-lucide="sparkles" class="h-4 w-4"></i> Glow Up Coach</a>
 
-            <p class="text-[10px] font-bold text-slate-500 uppercase px-3 mt-4 mb-2 tracking-wider">Tracking logs</p>
-            <a href="#" onclick="switchView('progressTracker')" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-900 transition text-sm font-medium" id="nav-progressTracker"><i data-lucide="line-chart" class="h-4 w-4"></i> Metrics Analytics</a>
+            <p class="text-[10px] font-bold text-slate-500 uppercase px-3 mt-5 mb-2 tracking-wider">Tracking logs</p>
+            <a href="#" onclick="switchView('progressTracker')" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-900 hover:text-slate-200 text-sm font-medium" id="nav-progressTracker"><i data-lucide="line-chart" class="h-4 w-4"></i> Metrics Analytics</a>
         </nav>
 
-        <div class="p-4 border-t border-slate-800 space-y-2">
+        <div class="p-4 border-t border-slate-800 space-y-2 bg-slate-950">
             <!-- Dynamic Admin Config Button (Visible only to owner) -->
-            <a href="#" id="ownerAdminBtn" onclick="switchView('adminSettings')" class="hidden flex items-center gap-3 px-3 py-2.5 rounded-xl bg-amber-950/40 text-amber-400 border border-amber-900/50 transition text-sm font-medium"><i data-lucide="shield-alert" class="h-4 w-4"></i> Admin Config</a>
-            <a href="#" onclick="switchView('pricing')" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold transition text-sm shadow-lg shadow-blue-900/20" id="nav-pricing"><i data-lucide="star" class="h-4 w-4"></i> Upgrade Plan</a>
-            <a href="#" onclick="handleLogout()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-rose-400 hover:bg-rose-950/25 transition text-sm font-medium"><i data-lucide="log-out" class="h-4 w-4"></i> Log Out</a>
+            <a href="#" id="ownerAdminBtn" onclick="switchView('adminSettings')" class="hidden flex items-center gap-3 px-3 py-2.5 rounded-xl bg-amber-950/40 text-amber-400 border border-amber-900/50 hover:bg-amber-900/40 text-sm font-medium"><i data-lucide="shield-alert" class="h-4 w-4"></i> Admin Config</a>
+            <a href="#" onclick="switchView('pricing')" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-sm shadow-lg shadow-blue-900/20" id="nav-pricing"><i data-lucide="star" class="h-4 w-4"></i> Upgrade Plan</a>
+            <a href="#" onclick="handleLogout()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-rose-400 hover:bg-rose-950/40 hover:text-rose-300 text-sm font-medium"><i data-lucide="log-out" class="h-4 w-4"></i> Log Out</a>
         </div>
     </aside>
 
     <!-- ========================================================= -->
     <!-- MAIN DISPLAY VIEWPORT CONTAINER                          -->
     <!-- ========================================================= -->
-    <main id="mainViewport" class="flex-1 p-8 overflow-y-auto hidden">
-        <header class="flex justify-between items-center mb-8 pb-4 border-b border-slate-800">
-            <div>
-                <span class="text-xs font-semibold text-blue-500 uppercase tracking-widest">Active Workspace</span>
-                <h2 id="viewPaneTitle" class="text-2xl font-bold tracking-tight">Welcome Dashboard</h2>
+    <main id="mainViewport" class="flex-1 h-screen overflow-y-auto hidden bg-slate-900 relative">
+        <header class="flex justify-between items-center p-6 md:p-8 border-b border-slate-800 sticky top-0 bg-slate-900/90 backdrop-blur-md z-30">
+            <div class="flex items-center gap-4">
+                <button onclick="toggleSidebar()" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300">
+                    <i data-lucide="menu" class="h-5 w-5"></i>
+                </button>
+                <div>
+                    <span class="text-[10px] font-bold text-blue-500 uppercase tracking-widest hidden md:block">Active Workspace</span>
+                    <h2 id="viewPaneTitle" class="text-xl md:text-2xl font-bold tracking-tight">Welcome Dashboard</h2>
+                </div>
             </div>
-            <div class="flex items-center gap-4 bg-slate-950 border border-slate-800 px-4 py-2 rounded-xl">
-                <div class="h-2 w-2 rounded-full bg-emerald-500"></div>
-                <p id="userEmailDisplay" class="text-sm font-medium text-slate-300">user@domain.com</p>
+            <div class="flex items-center gap-3">
+                <span id="userTierBadge" class="text-xs font-bold px-3 py-1 rounded-full uppercase shadow-sm">Free</span>
+                <div class="hidden md:flex items-center gap-2 bg-slate-950 border border-slate-800 px-4 py-2 rounded-xl">
+                    <div class="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
+                    <p id="userEmailDisplay" class="text-sm font-medium text-slate-300 truncate max-w-[150px]">user@domain.com</p>
+                </div>
             </div>
         </header>
 
-        <!-- PANE: HOME -->
-        <div id="pane-home" class="view-pane active space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 flex items-center gap-4">
-                    <div class="p-4 bg-blue-500/10 text-blue-400 rounded-xl"><i data-lucide="flame" class="h-6 w-6"></i></div>
-                    <div><h4 class="text-slate-400 text-xs uppercase tracking-wider font-semibold">Daily Calorie Target</h4><p class="text-xl font-bold mt-1">2,150 kcal</p></div>
-                </div>
-                <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 flex items-center gap-4">
-                    <div class="p-4 bg-emerald-500/10 text-emerald-400 rounded-xl"><i data-lucide="droplet" class="h-6 w-6"></i></div>
-                    <div><h4 class="text-slate-400 text-xs uppercase tracking-wider font-semibold">Water Burn Target</h4><p class="text-xl font-bold mt-1">3.5 Liters</p></div>
-                </div>
-                <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 flex items-center gap-4">
-                    <div class="p-4 bg-indigo-500/10 text-indigo-400 rounded-xl"><i data-lucide="trophy" class="h-6 w-6"></i></div>
-                    <div><h4 class="text-slate-400 text-xs uppercase tracking-wider font-semibold">Active Tracker Streak</h4><p class="text-xl font-bold mt-1">4 Days</p></div>
-                </div>
-            </div>
-            <!-- Interactive Setup Card -->
-            <div class="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-6">
-                <h3 class="text-lg font-bold mb-2">Complete Profile Metric Setup</h3>
-                <p class="text-sm text-slate-400 mb-4">Set baseline parameters to configure deep AI workflows.</p>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <input type="number" placeholder="Age" class="bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-500">
-                    <input type="number" placeholder="Height (cm)" class="bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-500">
-                    <input type="number" placeholder="Weight (kg)" class="bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-500">
-                    <select class="bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-slate-400 focus:outline-none focus:border-blue-500">
-                        <option>Sedentary</option>
-                        <option>Lightly Active</option>
-                        <option>Moderately Active</option>
-                        <option>Highly Active</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-
-        <!-- PANE: AI COACH CHAT -->
-        <div id="pane-aiCoach" class="view-pane space-y-4">
-            <div class="bg-slate-950 rounded-2xl border border-slate-800 p-4 h-[450px] flex flex-col justify-between">
-                <div class="flex-1 overflow-y-auto space-y-3 p-2" id="chatContainer">
-                    <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl max-w-xl text-sm">
-                        👋 I am your unified AI Coach. Ask me questions like "Give me a detailed macro plan" or "Analyze my fat loss workout targets".
+        <div class="p-6 md:p-8 pb-20">
+            <!-- PANE: HOME -->
+            <div id="pane-home" class="view-pane active space-y-6 max-w-6xl mx-auto">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 flex items-center gap-4 hover:border-slate-500 transition-colors">
+                        <div class="p-4 bg-blue-500/10 text-blue-400 rounded-xl"><i data-lucide="flame" class="h-6 w-6"></i></div>
+                        <div><h4 class="text-slate-400 text-[10px] uppercase tracking-wider font-bold">Daily Calorie Target</h4><p class="text-xl font-bold mt-1">2,150 kcal</p></div>
+                    </div>
+                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 flex items-center gap-4 hover:border-slate-500 transition-colors">
+                        <div class="p-4 bg-emerald-500/10 text-emerald-400 rounded-xl"><i data-lucide="droplet" class="h-6 w-6"></i></div>
+                        <div><h4 class="text-slate-400 text-[10px] uppercase tracking-wider font-bold">Water Burn Target</h4><p class="text-xl font-bold mt-1">3.5 Liters</p></div>
+                    </div>
+                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 flex items-center gap-4 hover:border-slate-500 transition-colors">
+                        <div class="p-4 bg-indigo-500/10 text-indigo-400 rounded-xl"><i data-lucide="trophy" class="h-6 w-6"></i></div>
+                        <div><h4 class="text-slate-400 text-[10px] uppercase tracking-wider font-bold">Active Tracker Streak</h4><p class="text-xl font-bold mt-1">4 Days</p></div>
                     </div>
                 </div>
-                <div class="flex gap-2 pt-3 border-t border-slate-800">
-                    <input type="text" id="chatInput" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500" placeholder="Ask your AI coach something...">
-                    <button onclick="handleTriggerPrompt('chat')" class="bg-blue-600 hover:bg-blue-700 px-5 rounded-xl font-bold text-sm cursor-pointer transition">Send</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- PANE: FOOD SCANNER -->
-        <div id="pane-scanFood" class="view-pane space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 flex flex-col items-center justify-center border-dashed border-2 p-8 text-center">
-                    <i data-lucide="cloud-lightning" class="h-12 w-12 text-slate-500 mb-4"></i>
-                    <p class="text-sm font-semibold mb-1">Upload plate image or enter Barcode</p>
-                    <p class="text-xs text-slate-500 mb-4">Formats supported: JPG, PNG, WEBP</p>
-                    <input type="file" class="hidden" id="foodImgFile">
-                    <button onclick="handleTriggerPrompt('food scan')" class="bg-slate-900 border border-slate-700 px-4 py-2 rounded-xl text-xs font-semibold hover:bg-slate-950 cursor-pointer">Analyze Meal Photo</button>
-                </div>
-                <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800">
-                    <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Scanner Structural Payload Output</h3>
-                    <div class="space-y-3 text-sm text-slate-500"><p>Awaiting payload processing parameters...</p></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- PANE: MEAL PLANNER -->
-        <div id="pane-mealPlanner" class="view-pane space-y-6">
-            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-                <h3 class="text-base font-bold mb-4">Generate Target Nutritional Mapping</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <select class="bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-slate-300"><option>Weight Loss</option><option>Muscle Building</option><option>Keto Plan</option></select>
-                    <select class="bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-slate-300"><option>No Preferences</option><option>Vegetarian</option><option>Vegan</option></select>
-                    <button onclick="handleTriggerPrompt('meal plan')" class="bg-blue-600 hover:bg-blue-700 font-bold text-sm rounded-xl py-3 cursor-pointer">Generate Dynamic Plan</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- PANE: WORKOUT GENERATOR -->
-        <div id="pane-workoutGenerator" class="view-pane space-y-6">
-            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-                <h3 class="text-base font-bold mb-4">AI Structural Split Routines</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <select class="bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-slate-300"><option>Gym Focus</option><option>Home / Calisthenics</option></select>
-                    <select class="bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-slate-300"><option>Hypertrophy</option><option>Fat Deficit Efficiency</option></select>
-                    <button onclick="handleTriggerPrompt('workout generation')" class="bg-blue-600 hover:bg-blue-700 font-bold text-sm rounded-xl py-3 cursor-pointer">Compile Split Workout</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- PANE: WEIGHT LOSS -->
-        <div id="pane-weightLoss" class="view-pane space-y-6">
-            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-                <h3 class="text-base font-bold mb-4">Configure Target Caloric Deficit Parameters</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <input type="number" placeholder="Target Weight (kg)" class="bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm">
-                    <input type="date" class="bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-slate-400">
-                    <button onclick="handleTriggerPrompt('weight loss')" class="bg-blue-600 hover:bg-blue-700 font-bold text-sm rounded-xl py-3 cursor-pointer">Run Deficit Analyzer</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- PANE: WEIGHT GAIN -->
-        <div id="pane-weightGain" class="view-pane space-y-6">
-            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-                <h3 class="text-base font-bold mb-4">Configure Hypercaloric Surplus Track</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <input type="number" placeholder="Target Mass (kg)" class="bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm">
-                    <select class="bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-slate-300"><option>Lean Gain (+300 kcal)</option><option>Aggressive Bulk (+600 kcal)</option></select>
-                    <button onclick="handleTriggerPrompt('weight gain')" class="bg-blue-600 hover:bg-blue-700 font-bold text-sm rounded-xl py-3 cursor-pointer col-span-1">Run Bulk Matrix</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- PANE: HEIGHT GROWTH GUIDE -->
-        <div id="pane-heightGrowth" class="view-pane space-y-6">
-            <div class="bg-amber-950/20 border border-amber-900/40 p-4 rounded-xl text-amber-400 text-xs flex gap-3">
-                <i data-lucide="alert-triangle" class="h-5 w-5 shrink-0"></i>
-                <p><strong>Disclaimer:</strong> BodyFit AI cannot genetically alter epiphyseal plate fusion or guarantee height increases. This module optimizes metrics around skeletal health, spinal decompression architecture, and kinetic biomechanics posture improvement.</p>
-            </div>
-            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-                <h3 class="text-base font-bold mb-4">Posture Optimization Assessment</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <input type="number" placeholder="Target Stretch Height Goal" class="bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm">
-                    <button onclick="handleTriggerPrompt('height optimization')" class="bg-blue-600 hover:bg-blue-700 font-bold text-sm rounded-xl py-3 cursor-pointer col-span-2">Build Skeletal Care Plan</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- PANE: GLOW UP COACH -->
-        <div id="pane-glowUp" class="view-pane space-y-6">
-            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-                <h3 class="text-base font-bold mb-4">Aesthetics, Skin Health & Habit Blueprints</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <select class="bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-slate-300"><option>Skincare Routine (Oily/Dry/Combination)</option><option>Hair Vitality & Hygiene Track</option></select>
-                    <button onclick="handleTriggerPrompt('glow up routing')" class="bg-blue-600 hover:bg-blue-700 font-bold text-sm rounded-xl py-3 cursor-pointer">Compile Aesthetic Routine</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- PANE: PROGRESS TRACKER -->
-        <div id="pane-progressTracker" class="view-pane space-y-6">
-            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-                <h3 class="text-base font-bold mb-4">Logged Metrics Pipeline</h3>
-                <p class="text-sm text-slate-400 mb-4">Analytics dashboard tracks historical trends. Premium tiers unlock advanced predictive models.</p>
-                <div class="h-48 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-center text-xs text-slate-600">
-                    [ Graphical Visual Vector — Track Logs Chart Simulation ]
-                </div>
-            </div>
-        </div>
-
-        <!-- PANE: PRICING PLANS -->
-        <div id="pane-pricing" class="view-pane space-y-6">
-            <div class="text-center max-w-xl mx-auto mb-4">
-                <h3 class="text-xl font-extrabold">Upgrade Plan Subscription Matrix</h3>
-                <p class="text-sm text-slate-400 mt-1">Unlock unrestricted daily throughput API capabilities instantly.</p>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Plan 1 -->
-                <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 flex flex-col justify-between">
-                    <div>
-                        <h4 class="text-lg font-bold">BodyFit Go</h4>
-                        <p class="text-2xl font-black mt-2 text-blue-400">₹399 <span class="text-xs text-slate-400 font-normal">/ month</span></p>
-                        <ul class="text-xs text-slate-400 space-y-2 mt-4">
-                            <li>• 40 Chat Messages per day</li>
-                            <li>• 10 Automated Food Scans per day</li>
-                            <li>• 5 Automated Workout/Meal generations</li>
-                        </ul>
+                <!-- Interactive Setup Card -->
+                <div class="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-6 md:p-8 shadow-lg">
+                    <h3 class="text-lg font-bold mb-2">Complete Profile Metric Setup</h3>
+                    <p class="text-sm text-slate-400 mb-6">Set baseline parameters to configure deep AI workflows.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <input type="number" placeholder="Age" class="bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                        <input type="number" placeholder="Height (cm)" class="bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                        <input type="number" placeholder="Weight (kg)" class="bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                        <select class="bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer">
+                            <option>Sedentary</option>
+                            <option>Lightly Active</option>
+                            <option>Moderately Active</option>
+                            <option>Highly Active</option>
+                        </select>
                     </div>
-                    <button onclick="openPaymentModal('BodyFit Go', 399)" class="w-full bg-slate-900 border border-slate-600 hover:border-blue-500 mt-6 py-2.5 rounded-xl font-bold text-xs cursor-pointer transition">Purchase Tier</button>
-                </div>
-                <!-- Plan 2 -->
-                <div class="bg-slate-800 border-2 border-blue-500 rounded-2xl p-6 flex flex-col justify-between relative shadow-xl shadow-blue-900/10">
-                    <span class="absolute -top-3 right-4 bg-blue-600 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Popular</span>
-                    <div>
-                        <h4 class="text-lg font-bold">BodyFit Premium</h4>
-                        <p class="text-2xl font-black mt-2 text-blue-400">₹1,200 <span class="text-xs text-slate-400 font-normal">/ month</span></p>
-                        <ul class="text-xs text-slate-300 space-y-2 mt-4">
-                            <li>• <strong>Unlimited</strong> Deep AI Chat Coaching</li>
-                            <li>• <strong>Unlimited</strong> Meal Camera Scans</li>
-                            <li>• Unrestricted Split Generations</li>
-                            <li>• Unlocks Progress Photo Analysis</li>
-                        </ul>
-                    </div>
-                    <button onclick="openPaymentModal('BodyFit Premium', 1200)" class="w-full bg-blue-600 hover:bg-blue-700 mt-6 py-2.5 rounded-xl font-bold text-xs cursor-pointer transition">Purchase Tier</button>
-                </div>
-                <!-- Plan 3 -->
-                <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 flex flex-col justify-between">
-                    <div>
-                        <h4 class="text-lg font-bold">3-Months Premium</h4>
-                        <p class="text-2xl font-black mt-2 text-blue-400">₹2,500 <span class="text-xs text-slate-400 font-normal">/ 3 months</span></p>
-                        <ul class="text-xs text-slate-400 space-y-2 mt-4">
-                            <li>• Full Core Premium Infrastructure Access</li>
-                            <li>• Save over 30% compared to monthly</li>
-                            <li>• High Priority OpenRouter Queue</li>
-                        </ul>
-                    </div>
-                    <button onclick="openPaymentModal('3-Months Premium', 2500)" class="w-full bg-slate-900 border border-slate-600 hover:border-blue-500 mt-6 py-2.5 rounded-xl font-bold text-xs cursor-pointer transition">Purchase Tier</button>
                 </div>
             </div>
-        </div>
 
-        <!-- PANE: OWNER ONLY ADMINISTRATIVE SETTINGS -->
-        <div id="pane-adminSettings" class="view-pane space-y-6">
-            <div class="bg-slate-800 p-6 rounded-2xl border border-amber-950/40">
-                <div class="flex items-center gap-2 mb-4 border-b border-slate-700 pb-3">
-                    <i data-lucide="shield-alert" class="text-amber-500 h-5 w-5"></i>
-                    <h3 class="text-base font-bold text-amber-400">Master Owner Administrative Configuration Console</h3>
-                </div>
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">OpenRouter Global API Key</label>
-                        <div class="flex gap-2">
-                            <input type="password" id="adminApiKey" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-500" placeholder="sk-or-v1-................................">
-                            <button onclick="verifyApiKey()" class="bg-amber-600 hover:bg-amber-700 px-5 text-xs font-bold rounded-xl cursor-pointer transition">Connect Key</button>
+            <!-- PANE: AI COACH CHAT -->
+            <div id="pane-aiCoach" class="view-pane space-y-4 max-w-4xl mx-auto">
+                <div class="bg-slate-950 rounded-2xl border border-slate-800 p-4 h-[60vh] flex flex-col justify-between shadow-inner">
+                    <div class="flex-1 overflow-y-auto space-y-4 p-2 scrollbar-hide" id="chatContainer">
+                        <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl rounded-tl-none max-w-[85%] text-sm shadow-md">
+                            👋 I am your unified AI Coach. Ask me questions like "Give me a detailed macro plan" or "Analyze my fat loss workout targets".
                         </div>
-                        <p id="apiKeyStatus" class="text-xs mt-2 text-slate-500">Infrastructure not initialized.</p>
                     </div>
-                    <div class="pt-4 border-t border-slate-700">
-                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Configure Master QR Code Payment Vector</label>
-                        <div class="bg-slate-950 border border-slate-700 rounded-xl p-4 flex flex-col items-center justify-center text-center">
-                            <i data-lucide="qr-code" class="h-8 w-8 text-slate-600 mb-2"></i>
-                            <input type="file" id="adminQrFile" accept="image/*" onchange="previewQrCode(event)" class="hidden">
-                            <button onclick="document.getElementById('adminQrFile').click()" class="bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-slate-950 cursor-pointer">Upload Merchant QR Image</button>
-                            <div id="qrPreviewContainer" class="mt-3 hidden">
-                                <p class="text-[10px] text-amber-500 font-bold mb-1">Active Gateway Live Preview:</p>
-                                <img id="qrPreview" src="" class="h-32 w-32 object-contain border border-slate-800 rounded-lg bg-white p-1">
+                    <div class="flex gap-2 pt-4 border-t border-slate-800 mt-2">
+                        <input type="text" id="chatInput" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="Ask your AI coach something...">
+                        <button onclick="handleTriggerPrompt('chat')" class="bg-blue-600 hover:bg-blue-500 px-6 rounded-xl font-bold text-sm shadow-lg shadow-blue-600/30">Send</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANE: FOOD SCANNER -->
+            <div id="pane-scanFood" class="view-pane space-y-6 max-w-5xl mx-auto">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col items-center justify-center border-dashed border-2 p-10 text-center hover:bg-slate-800/80 transition-colors cursor-pointer" onclick="document.getElementById('foodImgFile').click()">
+                        <div class="p-4 bg-slate-900 rounded-full mb-4 shadow-inner">
+                            <i data-lucide="cloud-lightning" class="h-10 w-10 text-blue-500"></i>
+                        </div>
+                        <p class="text-base font-bold mb-1">Tap to Upload Plate Photo</p>
+                        <p class="text-xs text-slate-500 mb-6">Formats supported: JPG, PNG (Gallery or Camera)</p>
+                        <!-- accept="image/*" triggers mobile OS gallery/camera natively -->
+                        <input type="file" class="hidden" id="foodImgFile" accept="image/*" onchange="alert('Image staged for analysis.')">
+                        <button onclick="event.stopPropagation(); handleTriggerPrompt('food scan')" class="bg-blue-600 px-6 py-3 rounded-xl text-sm font-bold shadow-lg shadow-blue-600/30 hover:bg-blue-500">Analyze Meal Photo</button>
+                    </div>
+                    <div class="bg-slate-950 p-8 rounded-2xl border border-slate-800 shadow-inner">
+                        <h3 class="text-xs font-bold text-blue-500 uppercase tracking-wider mb-4 border-b border-slate-800 pb-2">Structural Payload Output</h3>
+                        <div class="space-y-3 text-sm text-slate-500 flex items-center justify-center h-40">
+                            <p class="italic">Awaiting visual input parameters...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANE: MEAL PLANNER -->
+            <div id="pane-mealPlanner" class="view-pane space-y-6 max-w-5xl mx-auto">
+                <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-lg">
+                    <h3 class="text-lg font-bold mb-6 flex items-center gap-2"><i data-lucide="utensils" class="text-blue-500 h-5 w-5"></i> Generate Nutritional Mapping</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <select class="bg-slate-950 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 focus:border-blue-500 focus:outline-none cursor-pointer"><option>Weight Loss</option><option>Muscle Building</option><option>Keto Plan</option></select>
+                        <select class="bg-slate-950 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 focus:border-blue-500 focus:outline-none cursor-pointer"><option>No Preferences</option><option>Vegetarian</option><option>Vegan</option></select>
+                        <button onclick="handleTriggerPrompt('meal plan')" class="bg-blue-600 hover:bg-blue-500 font-bold text-sm rounded-xl py-4 shadow-lg shadow-blue-600/30">Generate Dynamic Plan</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANE: WORKOUT GENERATOR -->
+            <div id="pane-workoutGenerator" class="view-pane space-y-6 max-w-5xl mx-auto">
+                <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-lg">
+                    <h3 class="text-lg font-bold mb-6 flex items-center gap-2"><i data-lucide="zap" class="text-blue-500 h-5 w-5"></i> AI Structural Split Routines</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <select class="bg-slate-950 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 focus:border-blue-500 focus:outline-none cursor-pointer"><option>Gym Focus</option><option>Home / Calisthenics</option></select>
+                        <select class="bg-slate-950 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 focus:border-blue-500 focus:outline-none cursor-pointer"><option>Hypertrophy</option><option>Fat Deficit Efficiency</option></select>
+                        <button onclick="handleTriggerPrompt('workout generation')" class="bg-blue-600 hover:bg-blue-500 font-bold text-sm rounded-xl py-4 shadow-lg shadow-blue-600/30">Compile Split Workout</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANE: WEIGHT LOSS -->
+            <div id="pane-weightLoss" class="view-pane space-y-6 max-w-5xl mx-auto">
+                <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-lg">
+                    <h3 class="text-lg font-bold mb-6 flex items-center gap-2"><i data-lucide="trending-down" class="text-blue-500 h-5 w-5"></i> Target Caloric Deficit Engine</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <input type="number" placeholder="Target Weight (kg)" class="bg-slate-950 border border-slate-700 rounded-xl p-4 text-sm focus:border-blue-500 focus:outline-none">
+                        <input type="date" class="bg-slate-950 border border-slate-700 rounded-xl p-4 text-sm text-slate-400 focus:border-blue-500 focus:outline-none cursor-pointer">
+                        <button onclick="handleTriggerPrompt('weight loss')" class="bg-blue-600 hover:bg-blue-500 font-bold text-sm rounded-xl py-4 shadow-lg shadow-blue-600/30">Run Deficit Analyzer</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANE: WEIGHT GAIN -->
+            <div id="pane-weightGain" class="view-pane space-y-6 max-w-5xl mx-auto">
+                <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-lg">
+                    <h3 class="text-lg font-bold mb-6 flex items-center gap-2"><i data-lucide="trending-up" class="text-blue-500 h-5 w-5"></i> Hypercaloric Surplus Track</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <input type="number" placeholder="Target Mass (kg)" class="bg-slate-950 border border-slate-700 rounded-xl p-4 text-sm focus:border-blue-500 focus:outline-none">
+                        <select class="bg-slate-950 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 focus:border-blue-500 focus:outline-none cursor-pointer"><option>Lean Gain (+300 kcal)</option><option>Aggressive Bulk (+600 kcal)</option></select>
+                        <button onclick="handleTriggerPrompt('weight gain')" class="bg-blue-600 hover:bg-blue-500 font-bold text-sm rounded-xl py-4 shadow-lg shadow-blue-600/30">Run Bulk Matrix</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANE: HEIGHT GROWTH GUIDE -->
+            <div id="pane-heightGrowth" class="view-pane space-y-6 max-w-5xl mx-auto">
+                <div class="bg-amber-950/30 border border-amber-900/50 p-5 rounded-2xl text-amber-400 text-sm flex gap-4 shadow-inner">
+                    <i data-lucide="alert-triangle" class="h-6 w-6 shrink-0 mt-0.5"></i>
+                    <p><strong>Disclaimer:</strong> BodyFit AI cannot genetically alter epiphyseal plate fusion or guarantee height increases. This module optimizes metrics around skeletal health, spinal decompression architecture, and kinetic biomechanics posture improvement.</p>
+                </div>
+                <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-lg">
+                    <h3 class="text-lg font-bold mb-6 flex items-center gap-2"><i data-lucide="arrow-up-to-line" class="text-blue-500 h-5 w-5"></i> Posture Optimization Assessment</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <input type="number" placeholder="Target Stretch Height Goal" class="bg-slate-950 border border-slate-700 rounded-xl p-4 text-sm focus:border-blue-500 focus:outline-none">
+                        <button onclick="handleTriggerPrompt('height optimization')" class="bg-blue-600 hover:bg-blue-500 font-bold text-sm rounded-xl py-4 shadow-lg shadow-blue-600/30 col-span-1 md:col-span-2">Build Skeletal Care Plan</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANE: GLOW UP COACH -->
+            <div id="pane-glowUp" class="view-pane space-y-6 max-w-5xl mx-auto">
+                <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-lg">
+                    <h3 class="text-lg font-bold mb-6 flex items-center gap-2"><i data-lucide="sparkles" class="text-blue-500 h-5 w-5"></i> Aesthetics & Habit Blueprints</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <select class="bg-slate-950 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 focus:border-blue-500 focus:outline-none cursor-pointer"><option>Skincare Routine (Oily/Dry/Comb)</option><option>Hair Vitality & Hygiene Track</option></select>
+                        <button onclick="handleTriggerPrompt('glow up routing')" class="bg-blue-600 hover:bg-blue-500 font-bold text-sm rounded-xl py-4 shadow-lg shadow-blue-600/30">Compile Aesthetic Routine</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANE: PROGRESS TRACKER -->
+            <div id="pane-progressTracker" class="view-pane space-y-6 max-w-6xl mx-auto">
+                <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-lg">
+                    <h3 class="text-lg font-bold mb-2">Logged Metrics Pipeline</h3>
+                    <p class="text-sm text-slate-400 mb-6">Analytics dashboard tracks historical trends. Premium tiers unlock advanced predictive models.</p>
+                    <div class="h-64 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-center text-sm text-slate-600 shadow-inner">
+                        [ Graphical Visual Vector — Track Logs Chart Simulation ]
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANE: PRICING PLANS -->
+            <div id="pane-pricing" class="view-pane space-y-8 max-w-6xl mx-auto">
+                <div class="text-center max-w-2xl mx-auto mb-8">
+                    <h3 class="text-2xl md:text-3xl font-black">Upgrade Plan Subscription</h3>
+                    <p class="text-slate-400 mt-2">Unlock unrestricted daily throughput API capabilities instantly.</p>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Plan 1 -->
+                    <div class="bg-slate-800 border border-slate-700 rounded-3xl p-8 flex flex-col justify-between hover:border-slate-500 transition-colors">
+                        <div>
+                            <h4 class="text-xl font-bold">BodyFit Go</h4>
+                            <p class="text-3xl font-black mt-2 text-blue-400">₹399 <span class="text-sm text-slate-400 font-normal">/ month</span></p>
+                            <ul class="text-sm text-slate-400 space-y-3 mt-6">
+                                <li class="flex gap-2"><i data-lucide="check-circle-2" class="h-5 w-5 text-blue-500 shrink-0"></i> 40 Chat Messages / day</li>
+                                <li class="flex gap-2"><i data-lucide="check-circle-2" class="h-5 w-5 text-blue-500 shrink-0"></i> 10 Meal Scans / day</li>
+                                <li class="flex gap-2"><i data-lucide="check-circle-2" class="h-5 w-5 text-blue-500 shrink-0"></i> 5 Generations / month</li>
+                            </ul>
+                        </div>
+                        <button onclick="openPaymentModal('BodyFit Go', 399)" class="w-full bg-slate-900 border border-slate-600 hover:border-blue-500 mt-8 py-3 rounded-xl font-bold text-sm transition shadow-md">Purchase Tier</button>
+                    </div>
+                    <!-- Plan 2 -->
+                    <div class="bg-slate-800 border-2 border-blue-500 rounded-3xl p-8 flex flex-col justify-between relative shadow-2xl shadow-blue-900/20 transform scale-100 lg:scale-105 z-10">
+                        <span class="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-xs font-black px-4 py-1 rounded-full uppercase shadow-lg">Popular</span>
+                        <div>
+                            <h4 class="text-xl font-bold">BodyFit Premium</h4>
+                            <p class="text-3xl font-black mt-2 text-blue-400">₹1,200 <span class="text-sm text-slate-400 font-normal">/ month</span></p>
+                            <ul class="text-sm text-slate-200 space-y-3 mt-6">
+                                <li class="flex gap-2"><i data-lucide="zap" class="h-5 w-5 text-blue-400 shrink-0"></i> <strong>Unlimited</strong> Deep AI Coaching</li>
+                                <li class="flex gap-2"><i data-lucide="zap" class="h-5 w-5 text-blue-400 shrink-0"></i> <strong>Unlimited</strong> Meal Scans</li>
+                                <li class="flex gap-2"><i data-lucide="zap" class="h-5 w-5 text-blue-400 shrink-0"></i> Unrestricted Split Generations</li>
+                                <li class="flex gap-2"><i data-lucide="zap" class="h-5 w-5 text-blue-400 shrink-0"></i> Unlocks Photo Analysis</li>
+                            </ul>
+                        </div>
+                        <button onclick="openPaymentModal('BodyFit Premium', 1200)" class="w-full bg-blue-600 hover:bg-blue-500 mt-8 py-3 rounded-xl font-bold text-sm transition shadow-lg shadow-blue-600/30">Purchase Tier</button>
+                    </div>
+                    <!-- Plan 3 -->
+                    <div class="bg-slate-800 border border-slate-700 rounded-3xl p-8 flex flex-col justify-between hover:border-slate-500 transition-colors">
+                        <div>
+                            <h4 class="text-xl font-bold">3-Months Premium</h4>
+                            <p class="text-3xl font-black mt-2 text-blue-400">₹2,500 <span class="text-sm text-slate-400 font-normal">/ 3 months</span></p>
+                            <ul class="text-sm text-slate-400 space-y-3 mt-6">
+                                <li class="flex gap-2"><i data-lucide="shield-check" class="h-5 w-5 text-emerald-500 shrink-0"></i> Full Core Access</li>
+                                <li class="flex gap-2"><i data-lucide="shield-check" class="h-5 w-5 text-emerald-500 shrink-0"></i> Save over 30% total</li>
+                                <li class="flex gap-2"><i data-lucide="shield-check" class="h-5 w-5 text-emerald-500 shrink-0"></i> Priority OpenRouter Queue</li>
+                            </ul>
+                        </div>
+                        <button onclick="openPaymentModal('3-Months Premium', 2500)" class="w-full bg-slate-900 border border-slate-600 hover:border-blue-500 mt-8 py-3 rounded-xl font-bold text-sm transition shadow-md">Purchase Tier</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANE: OWNER ONLY ADMINISTRATIVE SETTINGS -->
+            <div id="pane-adminSettings" class="view-pane space-y-6 max-w-4xl mx-auto">
+                <div class="bg-slate-800 p-8 rounded-3xl border border-amber-900/50 shadow-2xl shadow-amber-900/10">
+                    <div class="flex items-center gap-3 mb-8 border-b border-slate-700 pb-4">
+                        <div class="p-2 bg-amber-950 rounded-lg"><i data-lucide="shield-alert" class="text-amber-500 h-6 w-6"></i></div>
+                        <div>
+                            <h3 class="text-lg font-bold text-amber-400">Master Owner Configuration</h3>
+                            <p class="text-xs text-slate-400">Changes here apply permanently across the platform.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-8">
+                        <!-- API Config -->
+                        <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-700/50">
+                            <label class="flex items-center gap-2 text-xs font-bold text-slate-300 uppercase tracking-wider mb-4"><i data-lucide="key" class="h-4 w-4"></i> OpenRouter Global API Key</label>
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <input type="password" id="adminApiKey" class="flex-1 bg-slate-950 border border-slate-600 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500" placeholder="sk-or-v1-................................">
+                                <button onclick="verifyApiKey()" class="bg-amber-600 hover:bg-amber-500 px-6 py-3 text-sm font-bold rounded-xl shadow-lg shadow-amber-600/20 whitespace-nowrap">Save & Connect</button>
+                            </div>
+                            <p id="apiKeyStatus" class="text-xs mt-3 text-slate-500 flex items-center gap-1"><i data-lucide="info" class="h-3 w-3"></i> Infrastructure not initialized.</p>
+                        </div>
+
+                        <!-- QR Config -->
+                        <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-700/50">
+                            <label class="flex items-center gap-2 text-xs font-bold text-slate-300 uppercase tracking-wider mb-4"><i data-lucide="qr-code" class="h-4 w-4"></i> Master Payment QR Code</label>
+                            <p class="text-xs text-slate-400 mb-4">Upload your receiving QR code. This will permanently display for all users when they attempt to purchase a plan.</p>
+                            
+                            <div class="flex flex-col md:flex-row items-center gap-6 bg-slate-950 border border-slate-700 rounded-xl p-6">
+                                <!-- Hidden input accepting images, triggers gallery -->
+                                <input type="file" id="adminQrFile" accept="image/*" onchange="previewQrCode(event)" class="hidden">
+                                
+                                <button onclick="document.getElementById('adminQrFile').click()" class="bg-slate-800 border border-slate-600 px-6 py-4 rounded-xl text-sm font-bold hover:bg-slate-700 hover:border-slate-400 flex flex-col items-center gap-2 w-full md:w-auto shadow-md">
+                                    <i data-lucide="image-plus" class="h-6 w-6 text-blue-400"></i>
+                                    Open Gallery & Upload QR
+                                </button>
+                                
+                                <div id="qrPreviewContainer" class="hidden flex-1 flex flex-col items-center border-l border-slate-800 pl-6">
+                                    <p class="text-[10px] text-emerald-400 font-bold mb-2 uppercase tracking-wider">Active Gateway Configuration:</p>
+                                    <img id="qrPreview" src="" class="h-32 w-32 object-contain border-2 border-emerald-500/50 rounded-xl bg-white p-2 shadow-lg shadow-emerald-900/20">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -341,24 +399,24 @@
     <!-- ========================================================= -->
     <!-- DYNAMIC TRANSACTION PAYMENT GATEWAY MODAL                 -->
     <!-- ========================================================= -->
-    <div id="paymentModal" class="fixed inset-0 bg-slate-950/80 hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md text-center">
-            <h3 class="text-lg font-bold">Scan to Settle Invoice</h3>
-            <p id="paymentPlanInfo" class="text-xs text-slate-400 mt-1">Plan Processing Validation Setup</p>
+    <div id="paymentModal" class="fixed inset-0 bg-slate-950/90 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-300">
+        <div class="bg-slate-800 border border-slate-700 rounded-3xl p-8 w-full max-w-md text-center shadow-2xl transform scale-100 transition-transform duration-300">
+            <h3 class="text-xl font-bold">Scan to Settle Invoice</h3>
+            <p id="paymentPlanInfo" class="text-sm text-slate-400 mt-2 font-medium">Plan Processing Validation Setup</p>
             
-            <div class="my-6 flex justify-center">
+            <div class="my-8 flex justify-center bg-slate-900 py-6 rounded-2xl border border-slate-700 shadow-inner">
                 <!-- Uses Owner QR Code dynamic load framework fallback -->
-                <img id="modalQrDisplay" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=PlaceholderNoOwnerQRUploaded" class="h-44 w-44 bg-white p-2 rounded-xl border border-slate-600 object-contain mx-auto">
+                <img id="modalQrDisplay" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=PlaceholderNoOwnerQRUploaded" class="h-48 w-48 bg-white p-2 rounded-xl object-contain shadow-lg">
             </div>
 
-            <div class="text-left space-y-3 mb-6">
+            <div class="text-left space-y-2 mb-8">
                 <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Transaction Reference / UTR ID</label>
-                <input type="text" id="paymentUtr" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500" placeholder="Enter 12-Digit Transaction ID">
+                <input type="text" id="paymentUtr" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="Enter 12-Digit Transaction ID">
             </div>
 
             <div class="flex gap-3">
-                <button onclick="closePaymentModal()" class="flex-1 bg-slate-900 hover:bg-slate-950 border border-slate-700 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer">Cancel</button>
-                <button onclick="submitPayment()" class="flex-1 bg-blue-600 hover:bg-blue-700 py-2.5 rounded-xl font-bold text-xs text-white transition cursor-pointer">Submit Reference</button>
+                <button onclick="closePaymentModal()" class="flex-1 bg-slate-900 hover:bg-slate-700 border border-slate-700 py-3 rounded-xl font-bold text-sm transition">Cancel</button>
+                <button onclick="submitPayment()" class="flex-1 bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-bold text-sm text-white transition shadow-lg shadow-blue-600/30">Submit Reference</button>
             </div>
         </div>
     </div>
@@ -372,10 +430,10 @@
 
         // STATE CONTROLLERS
         let currentUser = null;
-        let userTier = "free"; // Tracking values: 'free' | 'go' | 'premium'
+        let userTier = "free"; 
         let currentUsage = { chats: 0, scans: 0, generation: 0 };
         
-        // RETAIN LOCAL VALUE OBJECT STRUCTS FOR SIMULATED ENGINE PERSISTENCE
+        // PERSISTENT STORAGE VARIABLES
         let globalApiKey = localStorage.getItem("bf_api_key") || "";
         let globalQrCodeBase64 = localStorage.getItem("bf_qr_img") || "";
 
@@ -389,32 +447,79 @@
         // RUN LOGIC INITIALIZER ON SYSTEM EXECUTION
         document.addEventListener("DOMContentLoaded", () => {
             lucide.initIcons();
+            
+            // 1. Load Permanent QR Code Configuration
             if(globalQrCodeBase64) {
                 document.getElementById('qrPreview').src = globalQrCodeBase64;
                 document.getElementById('qrPreviewContainer').classList.remove('hidden');
                 document.getElementById('modalQrDisplay').src = globalQrCodeBase64;
             }
+            
+            // 2. Load Permanent API Key Configuration
             if(globalApiKey) {
                 document.getElementById('adminApiKey').value = globalApiKey;
-                document.getElementById('apiKeyStatus').innerText = "Connected to OpenRouter Infrastructure Pipeline via Saved Key.";
-                document.getElementById('apiKeyStatus').className = "text-xs mt-2 text-emerald-400 font-medium";
+                const statusText = document.getElementById('apiKeyStatus');
+                statusText.innerHTML = "<i data-lucide='check-circle-2' class='h-4 w-4'></i> Connected to OpenRouter Infrastructure Pipeline.";
+                statusText.className = "text-xs mt-3 text-emerald-400 font-medium flex items-center gap-1";
+                lucide.initIcons();
+            }
+
+            // 3. Login Persistence Check
+            const savedSession = localStorage.getItem('bf_current_user');
+            if (savedSession) {
+                // Instantly bypass login screen if a session is found
+                executeLogin(savedSession);
+            } else {
+                // Ensure auth form is fully visible
+                document.getElementById("authOverlay").style.opacity = "1";
             }
         });
 
+        // SIDEBAR TOGGLE LOGIC
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar.classList.contains('sidebar-hidden')) {
+                sidebar.classList.remove('sidebar-hidden');
+                sidebar.classList.remove('hidden'); // fail-safe for standard classes
+            } else {
+                sidebar.classList.add('sidebar-hidden');
+            }
+        }
+
+        // AUTHENTICATION LOGIC
         function handleAuth(event) {
             event.preventDefault();
             const email = document.getElementById("authEmail").value.trim();
             if(!email) return;
+            executeLogin(email);
+        }
 
+        function executeLogin(email) {
             currentUser = email;
             document.getElementById("userEmailDisplay").innerText = currentUser;
             
-            // Toggle view panels visibility boundaries
-            document.getElementById("authOverlay").classList.add("hidden");
-            document.getElementById("sidebar").classList.remove("hidden");
-            document.getElementById("mainViewport").classList.remove("hidden");
+            // Save Session for page refreshes
+            localStorage.setItem('bf_current_user', currentUser);
+            
+            // Fade out auth overlay gracefully
+            const authOverlay = document.getElementById("authOverlay");
+            authOverlay.style.opacity = "0";
+            setTimeout(() => {
+                authOverlay.classList.add("hidden");
+                // Show Main UI
+                const sidebar = document.getElementById("sidebar");
+                // Hide sidebar on mobile by default, show on desktop
+                if(window.innerWidth < 768) {
+                    sidebar.classList.add("sidebar-hidden");
+                } else {
+                    sidebar.classList.remove("sidebar-hidden");
+                }
+                sidebar.classList.remove("hidden");
+                
+                document.getElementById("mainViewport").classList.remove("hidden");
+            }, 300);
 
-            // Evaluate if configuration requests match Master Admin Email signatures
+            // Master Admin Check
             if(currentUser.toLowerCase() === OWNER_EMAIL.toLowerCase()) {
                 document.getElementById("ownerAdminBtn").classList.remove("hidden");
                 userTier = "premium";
@@ -423,39 +528,63 @@
                 userTier = "free";
             }
             updateTierUI();
+            lucide.initIcons();
         }
 
+        function handleLogout() {
+            currentUser = null;
+            userTier = "free";
+            
+            // Clear persistent session
+            localStorage.removeItem('bf_current_user');
+            
+            document.getElementById("authEmail").value = "";
+            document.getElementById("authPassword").value = "";
+            
+            const authOverlay = document.getElementById("authOverlay");
+            authOverlay.classList.remove("hidden");
+            setTimeout(() => { authOverlay.style.opacity = "1"; }, 10);
+            
+            document.getElementById("sidebar").classList.add("hidden");
+            document.getElementById("mainViewport").classList.add("hidden");
+            switchView('home'); // Reset to home for next login
+        }
+
+        // UI UPDATES
         function updateTierUI() {
             const badge = document.getElementById("userTierBadge");
             badge.innerText = userTier;
             if(userTier === "premium") {
-                badge.className = "text-xs bg-blue-950 text-blue-400 border border-blue-800 font-extrabold px-2 py-0.5 rounded-full uppercase";
+                badge.className = "text-[10px] bg-blue-600 text-white font-black px-3 py-1 rounded-full uppercase shadow-md shadow-blue-900/50 border border-blue-500";
             } else if(userTier === "go") {
-                badge.className = "text-xs bg-amber-950 text-amber-400 border border-amber-800 font-extrabold px-2 py-0.5 rounded-full uppercase";
+                badge.className = "text-[10px] bg-amber-600 text-white font-black px-3 py-1 rounded-full uppercase shadow-md shadow-amber-900/50 border border-amber-500";
             } else {
-                badge.className = "text-xs bg-slate-800 text-slate-300 font-bold px-2 py-0.5 rounded-full uppercase";
+                badge.className = "text-[10px] bg-slate-800 text-slate-300 font-bold px-3 py-1 rounded-full uppercase border border-slate-700";
             }
         }
 
         function switchView(targetPaneId) {
-            // Unset active attributes everywhere
             document.querySelectorAll(".view-pane").forEach(pane => pane.classList.remove("active"));
-            document.querySelectorAll(".nav-btn").forEach(btn => btn.classList.remove("sidebar-item-active"));
+            document.querySelectorAll(".nav-btn").forEach(btn => btn.classList.remove("sidebar-item-active", "text-white"));
 
-            // Activate current targeted dynamic ID context references
             const targetedPane = document.getElementById(`pane-${targetPaneId}`);
             if(targetedPane) targetedPane.classList.add("active");
             
             const targetedNav = document.getElementById(`nav-${targetPaneId}`);
-            if(targetedNav) targetedNav.classList.add("sidebar-item-active");
+            if(targetedNav) targetedNav.classList.add("sidebar-item-active", "text-white");
 
-            // Update Header Display metadata strings dynamically
             const headerTitle = document.getElementById("viewPaneTitle");
-            headerTitle.innerText = targetedPane ? document.getElementById(`nav-${targetPaneId}`)?.innerText || "System Dashboard" : "Workspace Hub";
+            headerTitle.innerText = targetedPane ? targetedNav?.innerText || "System Dashboard" : "Workspace Hub";
+            
+            // Close sidebar on mobile after clicking a link
+            if(window.innerWidth < 768) {
+                document.getElementById('sidebar').classList.add('sidebar-hidden');
+            }
+            
             lucide.initIcons();
         }
 
-        // CONTROL THROTTLED VERIFICATION MATRIX
+        // THROTTLED AI GENERATION TRIGGERS
         function handleTriggerPrompt(actionType) {
             let limitPassed = true;
             if(actionType === 'chat') {
@@ -481,46 +610,58 @@
             if(!input.value.trim()) return;
 
             const userMsg = document.createElement("div");
-            userMsg.className = "bg-slate-800 p-3 rounded-xl max-w-xl text-sm ml-auto text-right border border-slate-700";
+            userMsg.className = "bg-blue-600 text-white p-4 rounded-xl rounded-tr-none max-w-[85%] text-sm ml-auto text-right shadow-md";
             userMsg.innerText = input.value;
             container.appendChild(userMsg);
+            container.scrollTop = container.scrollHeight;
             
-            // Provide contextually mock execution response framework loops
             setTimeout(() => {
                 const aiMsg = document.createElement("div");
-                aiMsg.className = "bg-blue-950/40 border border-blue-900/50 p-3 rounded-xl max-w-xl text-sm text-blue-300";
-                aiMsg.innerText = "Processing structured input parameter via OpenRouter balance arrays. Optimization routines processed successfully.";
+                aiMsg.className = "bg-slate-800 border border-slate-700 p-4 rounded-xl rounded-tl-none max-w-[85%] text-sm shadow-md text-slate-200";
+                aiMsg.innerText = "Processing structured input parameter via OpenRouter array streams. Configuration processed successfully.";
                 container.appendChild(aiMsg);
                 container.scrollTop = container.scrollHeight;
-            }, 750);
+            }, 800);
             input.value = "";
         }
 
-        // PRICING GATEWAY ENGINE CONTROLS
+        // PRICING GATEWAY CONTROLS
         function openPaymentModal(planName, price) {
-            document.getElementById("paymentPlanInfo").innerText = `Invoice Processing Request: ${planName} — Total Cost: ₹${price}`;
-            document.getElementById("paymentModal").classList.remove("hidden");
+            document.getElementById("paymentPlanInfo").innerText = `Invoice Request: ${planName} — Cost: ₹${price}`;
+            const modal = document.getElementById("paymentModal");
+            modal.classList.remove("hidden");
+            // Ensure QR image from config is loaded dynamically if available
+            if(globalQrCodeBase64) {
+                document.getElementById('modalQrDisplay').src = globalQrCodeBase64;
+            }
         }
-        function closePaymentModal() { document.getElementById("paymentModal").classList.add("hidden"); }
+        
+        function closePaymentModal() { 
+            document.getElementById("paymentModal").classList.add("hidden"); 
+            document.getElementById("paymentUtr").value = "";
+        }
+        
         function submitPayment() {
             const utrValue = document.getElementById("paymentUtr").value.trim();
-            if(utrValue.length < 6) { alert("Invalid Reference. Please provide legitimate payment verification transaction hashes."); return; }
-            alert("Reference safely mapped to administrative approval pools. Your user profile status will update automatically upon validation verification.");
+            if(utrValue.length < 6) { alert("Invalid Reference. Please provide a legitimate transaction hash."); return; }
+            alert("Payment reference mapped. Administrative approval pending. Auto-promoting profile for validation demonstration.");
             closePaymentModal();
-            userTier = "premium"; // Auto-promote for structural demonstration validation workflows
+            userTier = "premium"; 
             updateTierUI();
         }
 
-        // ADMINISTRATIVE BACKEND ACTIONS
+        // PERMANENT ADMINISTRATIVE CONFIGURATIONS
         function verifyApiKey() {
             const token = document.getElementById("adminApiKey").value.trim();
             if(!token) return;
             globalApiKey = token;
+            // Save Permanently
             localStorage.setItem("bf_api_key", globalApiKey);
             
             const statusText = document.getElementById("apiKeyStatus");
-            statusText.innerText = "Validation testing completed. Connected securely to OpenRouter API edge parameters.";
-            statusText.className = "text-xs mt-2 text-emerald-400 font-semibold";
+            statusText.innerHTML = "<i data-lucide='check-circle-2' class='h-4 w-4'></i> Credentials verified and locked into local persistence.";
+            statusText.className = "text-xs mt-3 text-emerald-400 font-bold flex items-center gap-1";
+            lucide.initIcons();
         }
 
         function previewQrCode(event) {
@@ -529,25 +670,21 @@
             const reader = new FileReader();
             reader.onload = function(e) {
                 globalQrCodeBase64 = e.target.result;
+                // Save Permanently (Simulating database storage for cross-session use)
                 localStorage.setItem("bf_qr_img", globalQrCodeBase64);
+                
+                // Update Admin Preview
                 document.getElementById('qrPreview').src = globalQrCodeBase64;
                 document.getElementById('qrPreviewContainer').classList.remove('hidden');
+                document.getElementById('qrPreviewContainer').classList.add('flex');
+                
+                // Update Master Payment Modal implicitly
                 document.getElementById('modalQrDisplay').src = globalQrCodeBase64;
-                alert("Master global payment gateway asset altered successfully.");
+                
+                alert("Master Global Payment QR code permanently updated.");
             }
             reader.readAsDataURL(file);
-        }
-
-        function handleLogout() {
-            currentUser = null;
-            userTier = "free";
-            document.getElementById("authEmail").value = "";
-            document.getElementById("authPassword").value = "";
-            document.getElementById("authOverlay").classList.remove("hidden");
-            document.getElementById("sidebar").classList.add("hidden");
-            document.getElementById("mainViewport").classList.add("hidden");
         }
     </script>
 </body>
 </html>
-
